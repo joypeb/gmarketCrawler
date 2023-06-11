@@ -1,6 +1,8 @@
 package com.linkprice.gmarketcrawler.crawler;
 
 import com.linkprice.gmarketcrawler.domain.Gmarket;
+import com.linkprice.gmarketcrawler.writer.CsvWriter;
+import com.linkprice.gmarketcrawler.writer.GmarketCsvFlatWriter;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -20,12 +22,17 @@ public class GmarketCrawler implements Crawler{
         String url = "https://browse.gmarket.co.kr/search?keyword=";
         List<Gmarket> gmarkets = null;
 
+        CsvWriter<List<Gmarket>> csvWriter = new GmarketCsvFlatWriter();
+
         try {
             //jsoup을 이용해 Document가져오기
             Document doc = Jsoup.connect(url + str).get();
 
             //분석
             gmarkets = crawling(doc, str);
+
+            //csv저장
+            csvWriter.writeCSV(gmarkets, "./file/output.csv");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -56,10 +63,14 @@ public class GmarketCrawler implements Crawler{
                 price = priceElements.first().text();
 
             String imgUrl = "";
-            Elements imgUrlElements = element.getElementsByTag("img");
+            Elements imgUrlElementsSibling = element.previousElementSiblings();
+            Elements imgUrlElements = null;
+            if(!imgUrlElementsSibling.isEmpty()) {
+                imgUrlElements = imgUrlElementsSibling.first().getElementsByTag("img");
+            }
             if(!imgUrlElements.isEmpty())
                 imgUrl = imgUrlElements.first().attr("src");
-            if(imgUrl.startsWith("https:")) imgUrl = "https:" + imgUrl;
+            if(!imgUrl.startsWith("https:")) imgUrl = "https:" + imgUrl;
 
             String payNum = "";
             Elements payCountElements = element.getElementsByClass("list-item list-item__pay-count");
